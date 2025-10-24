@@ -44,7 +44,7 @@ RUN rm -rf /tmp/opencart.zip && rm -rf /tmp/opencart && rm -rf ${DIR_OPENCART}in
 
 RUN mv ${DIR_OPENCART}system/storage/* /storage
 COPY configs ${DIR_OPENCART}
-COPY php.ini ${PHP_INI_DIR}
+
 
 RUN a2enmod rewrite
 
