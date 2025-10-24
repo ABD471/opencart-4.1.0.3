@@ -30,10 +30,14 @@ RUN apt-get install -y vim
 
 RUN mkdir /storage && mkdir /opencart
 
-RUN if [ -z "$DOWNLOAD_URL" ]; then \
-  curl -Lo /tmp/opencart.zip $(sh -c 'curl -s https://api.github.com/repos/opencart/opencart/releases/latest | grep "browser_download_url" | cut -d : -f 2,3 | tr -d \"'); \
+RUN apt-get install -y jq \
+  && if [ -z "$DOWNLOAD_URL" ]; then \
+    curl -s https://api.github.com/repos/opencart/opencart/releases/latest \
+    | jq -r '.assets[] | select(.name | test("zip$")) | .browser_download_url' \
+    | head -n 1 \
+    | xargs -n 1 curl -Lo /tmp/opencart.zip; \
   else \
-  curl -Lo /tmp/opencart.zip ${DOWNLOAD_URL}; \
+    curl -Lo /tmp/opencart.zip "$DOWNLOAD_URL"; \
   fi
 
 RUN unzip /tmp/opencart.zip -d  /tmp/opencart;
