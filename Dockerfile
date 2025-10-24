@@ -30,15 +30,7 @@ RUN apt-get install -y vim
 RUN apt-get install -y jq
 RUN mkdir /storage && mkdir /opencart
 
-RUN if [ -z "$DOWNLOAD_URL" ]; then \
-    curl -s https://api.github.com/repos/opencart/opencart/releases/latest \
-    | jq -r '.assets[] | select(.name == "opencart-4.1.0.3.zip") | .browser_download_url' \
-    | head -n 1 \
-    | xargs -n 1 curl -Lo /tmp/opencart.zip; \
-  else \
-    curl -Lo /tmp/opencart.zip "$DOWNLOAD_URL"; \
-  fi
-
+RUN curl -Lo /tmp/opencart.zip "https://github.com/opencart/opencart/archive/refs/tags/4.1.0.3.zip"
 RUN unzip /tmp/opencart.zip -d  /tmp/opencart;
 RUN FOLDER_NAME=$(ls -d /tmp/opencart/*/ | grep -vE '(docs|licence)' | head -n 1 | xargs basename) && \
     mv /tmp/opencart/${FOLDER_NAME}/upload/* /var/www/html/ && \
