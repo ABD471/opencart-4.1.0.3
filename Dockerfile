@@ -40,8 +40,10 @@ RUN if [ -z "$DOWNLOAD_URL" ]; then \
   fi
 
 RUN unzip /tmp/opencart.zip -d  /tmp/opencart;
+RUN FOLDER_NAME=$(unzip -l /tmp/opencart.zip | awk '{print $4}' | grep -E 'opencart-[a-z0-9.]+/upload/$' | head -n 1 | awk -F'/upload' '{print $1}') && \
+    mv /tmp/opencart/${FOLDER_NAME}/upload/* /var/www/html/ && \
+    mv /tmp/opencart/${FOLDER_NAME}/storage /storage;
 
-RUN mv /tmp/opencart/$(if [ -n "$FOLDER" ]; then echo $FOLDER; else  unzip -l /tmp/opencart.zip | awk '{print $4}' | grep -E 'opencart-[a-z0-9.]+/upload/$'; fi)* ${DIR_OPENCART};
 
 RUN rm -rf /tmp/opencart.zip && rm -rf /tmp/opencart && rm -rf ${DIR_OPENCART}install;
 
