@@ -40,7 +40,7 @@ RUN if [ -z "$DOWNLOAD_URL" ]; then \
   fi
 
 RUN unzip /tmp/opencart.zip -d  /tmp/opencart;
-RUN FOLDER_NAME=$(ls -d /tmp/opencart/*/ | head -n 1 | xargs basename) && \
+UN FOLDER_NAME=$(ls -d /tmp/opencart/*/ | grep -E 'opencart-[0-9.]+' | head -n 1 | xargs basename) && \
     # mv محتوى upload (الملفات العامة)
     mv /tmp/opencart/${FOLDER_NAME}/upload/* /var/www/html/ && \
     # mv مجلد storage (الملفات الخاصة)
