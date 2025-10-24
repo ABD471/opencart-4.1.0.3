@@ -27,11 +27,10 @@ RUN apt-get install -y \
 
 
 RUN apt-get install -y vim
-
+RUN apt-get install -y jq
 RUN mkdir /storage && mkdir /opencart
 
-RUN apt-get install -y jq \
-  && if [ -z "$DOWNLOAD_URL" ]; then \
+RUN if [ -z "$DOWNLOAD_URL" ]; then \
     curl -s https://api.github.com/repos/opencart/opencart/releases/latest \
     | jq -r '.assets[] | select(.name | test("zip$")) | .browser_download_url' \
     | head -n 1 \
