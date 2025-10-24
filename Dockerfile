@@ -32,7 +32,7 @@ RUN mkdir /storage && mkdir /opencart
 
 RUN if [ -z "$DOWNLOAD_URL" ]; then \
     curl -s https://api.github.com/repos/opencart/opencart/releases/latest \
-    | jq -r '.assets[] | select(.name | test("zip$")) | .browser_download_url' \
+    | jq -r '.assets[] | select(.name == "opencart-4.1.0.3.zip") | .browser_download_url' \
     | head -n 1 \
     | xargs -n 1 curl -Lo /tmp/opencart.zip; \
   else \
