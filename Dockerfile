@@ -23,11 +23,15 @@ RUN mkdir -p /storage /opencart ${DIR_OPENCART}
 
 # Download OpenCart
 RUN if [ -z "$DOWNLOAD_URL" ]; then \
-      curl -s https://api.github.com/repos/opencart/opencart/releases/latest \
-      | grep "browser_download_url" | cut -d '"' -f 4 | xargs curl -Lo /tmp/opencart.zip; \
+      DOWNLOAD_URL=$(curl -s https://api.github.com/repos/opencart/opencart/releases/latest \
+        | grep -o 'https.*opencart.*\.zip' | head -n 1); \
+      echo "Downloading OpenCart from: $DOWNLOAD_URL"; \
+      curl -L -o /tmp/opencart.zip "$DOWNLOAD_URL"; \
     else \
-      curl -Lo /tmp/opencart.zip ${DOWNLOAD_URL}; \
+      echo "Using custom URL: ${DOWNLOAD_URL}"; \
+      curl -L -o /tmp/opencart.zip "${DOWNLOAD_URL}"; \
     fi
+
 
 # Unzip and move files
 RUN unzip /tmp/opencart.zip -d /tmp/opencart && \
