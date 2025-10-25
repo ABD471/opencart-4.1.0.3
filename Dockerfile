@@ -1,64 +1,50 @@
-FROM php:8.2.11-apache
+FROM php:8.2-apache
 
+# Arguments
 ARG DOWNLOAD_URL
 ARG FOLDER
 
+# Environment
+ENV DIR_OPENCART="/var/www/html/"
+ENV DIR_STORAGE="/storage/"
+ENV DIR_IMAGE="${DIR_OPENCART}image/"
 
-ENV DIR_OPENCART='/var/www/html/'
-ENV DIR_STORAGE='/storage/'
-ENV DIR_CACHE=${DIR_STORAGE}'cache/'
-ENV DIR_DOWNLOAD=${DIR_STORAGE}'download/'
-ENV DIR_LOGS=${DIR_STORAGE}'logs/'
-ENV DIR_SESSION=${DIR_STORAGE}'session/'
-ENV DIR_UPLOAD=${DIR_STORAGE}'upload/'
-ENV DIR_IMAGE=${DIR_OPENCART}'image/'
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    unzip curl libfreetype6-dev libjpeg62-turbo-dev libpng-dev libzip-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd mysqli zip \
+    && a2enmod rewrite \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
+# Create directories
+RUN mkdir -p /storage /opencart ${DIR_OPENCART}
 
-RUN apt-get clean && apt-get update && apt-get install unzip
+# Download OpenCart
+RUN if [ -z "$DOWNLOAD_URL" ]; then \
+      curl -s https://api.github.com/repos/opencart/opencart/releases/latest \
+      | grep "browser_download_url" | cut -d '"' -f 4 | xargs curl -Lo /tmp/opencart.zip; \
+    else \
+      curl -Lo /tmp/opencart.zip ${DOWNLOAD_URL}; \
+    fi
 
-RUN apt-get install -y \
-  libfreetype6-dev \
-  libjpeg62-turbo-dev \
-  libpng-dev \
-  libzip-dev \
-  vim \
-  && docker-php-ext-configure gd --with-freetype --with-jpeg \
-  && docker-php-ext-install -j$(nproc) gd zip mysqli
+# Unzip and move files
+RUN unzip /tmp/opencart.zip -d /tmp/opencart && \
+    cp -r /tmp/opencart/*/upload/* ${DIR_OPENCART} && \
+    rm -rf /tmp/opencart.zip /tmp/opencart && \
+    mv ${DIR_OPENCART}system/storage/* ${DIR_STORAGE} && \
+    rm -rf ${DIR_OPENCART}install
 
+# Permissions
+RUN chown -R www-data:www-data ${DIR_OPENCART} ${DIR_STORAGE} && \
+    chmod -R 755 ${DIR_OPENCART} ${DIR_STORAGE}
 
-RUN apt-get install -y vim
-RUN apt-get install -y jq
-RUN mkdir /storage && mkdir /opencart
+# Apache config for Render (port 8080)
+RUN sed -i 's|Listen 80|Listen 8080|g' /etc/apache2/ports.conf \
+    && sed -i 's|<VirtualHost \*:80>|<VirtualHost *:8080>|g' /etc/apache2/sites-available/000-default.conf \
+    && echo '<Directory /var/www/html/>\nAllowOverride All\n</Directory>' >> /etc/apache2/apache2.conf
 
-RUN curl -Lo /tmp/opencart.zip "https://github.com/opencart/opencart/archive/refs/tags/4.1.0.3.zip"
-RUN unzip /tmp/opencart.zip -d  /tmp/opencart;
-RUN FOLDER_NAME=$(ls -d /tmp/opencart/*/ | grep -vE '(docs|licence)' | head -n 1 | xargs basename) && \
-    mv /tmp/opencart/${FOLDER_NAME}/upload/* /var/www/html/ && \
-    mv /tmp/opencart/${FOLDER_NAME}/storage /storage;
-
-
-RUN rm -rf /tmp/opencart.zip && rm -rf /tmp/opencart && rm -rf ${DIR_OPENCART}install;
-
-RUN mv /var/www/html/storage/* /storage
-
-
-
-RUN a2enmod rewrite
-
-RUN chown -R www-data:www-data ${DIR_STORAGE}
-RUN chmod -R 555 ${DIR_OPENCART}
-RUN chmod -R 666 ${DIR_STORAGE}
-RUN chmod 555 ${DIR_STORAGE}
-RUN chmod -R 555 ${DIR_STORAGE}vendor
-RUN chmod 755 ${DIR_LOGS}
-RUN chmod -R 644 ${DIR_LOGS}*
-
-RUN chown -R www-data:www-data ${DIR_IMAGE}
-RUN chmod -R 744 ${DIR_IMAGE}
-RUN chmod -R 755 ${DIR_CACHE}
-
-RUN chmod -R 666 ${DIR_DOWNLOAD}
-RUN chmod -R 666 ${DIR_SESSION}
-RUN chmod -R 666 ${DIR_UPLOAD}
+EXPOSE 8080
 
 CMD ["apache2-foreground"]
